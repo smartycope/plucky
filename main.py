@@ -9,3 +9,6 @@ if __name__ == "__main__":
     window.show()
     # app.setOverrideCursor(PyQt5.QtCore.Qt.BlankCursor)
     sys.exit(app.exec_())
+
+
+# TRY RESTARTING MARVIN, IT MIGHT FIX THE IMPORT ERROR

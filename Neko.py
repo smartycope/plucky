@@ -20,17 +20,21 @@ from os.path import join, dirname
 
 DIR = dirname(__file__)
 
-class Plucky(AlwaysInFrontCharacter):
+class Neko(AlwaysInFrontCharacter):
     def __init__(self):
         super().__init__(size=(35, 35),
-                         framesDirectory=join(DIR, 'pluckyFrames'),
+                         framesDirectory=join(DIR, 'nekoFrames'),
                          frameSpeed=400, # In milliseconds
                          moveSpeed=20,   # In pixels - sorta
                         )
 
         self.minYawnTimeSec = 20
         self.maxYawnTimeSec = 360
-        self.mission = self.followMouse
+        self.setMission(self.followMouse)
+        # self.yawnTimer = QTimer()
+        self.sleepTimer = QTimer()
+        # Seconds before Neko falls asleep after doing nothing
+        self.tiredness = 10
 
     def setAnimations(self, pixmaps):
         sit = Animation(self, -1, self.frameSpeed, [pixmaps['sit']]),
@@ -58,3 +62,80 @@ class Plucky(AlwaysInFrontCharacter):
             'sprayed':       Animation(self,  3, self.frameSpeed,       [pixmaps['awake']]),
             'eat':           Animation(self,  3, self.frameSpeed / 2,   [pixmaps['yawn'],       pixmaps['sit']]),
         }
+
+
+    def chase(self, dest=None):
+        if dest is None:
+            assert(self.runningAnimName == 'sleep')
+            self.setAnim('wakeUp')
+            self.runningAnim.finished.connect(self.chase, self.genNextDest())
+
+        assert(dest)
+
+        opp = self.y() - dest[1]
+        adj = self.x() - dest[0]
+        angle = math.atan2(adj, opp)  #Cope.normalize2rad(abs(math.atan2(self.y() - self.to[1], self.x() - self.to[0])))
+
+        #  self.move(-math.sin(self.angle) / self.moveSpeed, -math.cos(self.angle) / self.moveSpeed)
+        dx, dy = (math.cos(angle) * self.moveSpeed, math.sin(angle) * self.moveSpeed)
+
+
+        _dir = self.dirFromAngle(angle)
+        if _dir == Dir.UP:
+            self.setAnim('walkUp')
+        elif _dir == Dir.DOWN:
+            self.setAnim('walkDown')
+        elif _dir == Dir.LEFT:
+            self.setAnim('walkLeft')
+        elif _dir == Dir.RIGHT:
+            self.setAnim('walkRight')
+
+        def checkDest(tolerance):
+            if self.mission is Mission.FOLLOW_MOUSE:
+                dest = ag.position()
+                if getDist(self.x(), self.y(), dest[0], dest[1]) < tolerance:
+                    self.setAnim('pawCenter')
+                    self.runningAnim.finished.connect(self.fallAsleep, -1)
+            elif getDist(self.x(), self.y(), dest[0], dest[1]) < tolerance:
+                self.fallAsleep(randint(self.minSleepCycles, self.maxSleepCycles))
+
+        self.runningAnim.increment.connect(self.move) #, dx, dy)
+        self.runningAnim.increment.connect(checkDest) #, self.closeEnoughTolerance)
+        self.dx = round(dx)
+        self.dy = round(dy)
+
+
+    def fallAsleep(self, sleepAmount):
+        self.setAnim('fallAsleep')
+        self.runningAnim.finished.connect(self.setAnim, 'sleep')
+
+        def checkForMovement():
+            if ag.position() != self.prevMouseLoc:
+                self.chase()
+
+        def setSleepTime(time):
+            assert(self.runningAnim.name == 'sleep')
+            if time < 0:
+                assert(self.mission in (Mission.FOLLOW_MOUSE, Mission.FOLLOW_MOUSE_CLICKS))
+                self.runningAnim.increment.connect(checkForMovement)
+
+            self.runningAnim.laps = time
+            self.runningAnim.finished.connect(self.chase)
+
+        self.runningAnim.finished.connect(setSleepTime, sleepAmount)
+
+
+    def paw(self, _dir):
+        self.setAnim('paw' + _dir.capitalize())
+
+    def onMouseMoved(self, x, y):
+        self.sleepTimer.stop()
+
+    def idle(self):
+        self.setAnim('sit')
+
+        self.sleepTimer = QTimer()
+        self.sleepTimer.timeout.connect(self.fallAsleep)
+        self.sleepTimer.start(self.tiredness)
+        # self.yawnTimer.timeout.connect(lambda: self.setAnim('yawn'))
+        # self.yawnTimer.start(randint(self.minYawnTime * 1000, self.maxYawnTime * 1000))

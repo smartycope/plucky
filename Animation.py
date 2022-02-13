@@ -2,7 +2,7 @@ from PyQt5.QtCore import QTimer
 from Cope import Signal
 
 class Animation:
-    def __init__(self, subject, laps, fps, frames, name=None):
+    def __init__(self, subject, laps, fps, frames):
         self.subject = subject
         self.frames = frames
         self.len = len(self.frames)
@@ -15,7 +15,6 @@ class Animation:
         self.lapped = Signal()
         self.increment = Signal()
         self.fps = fps
-        self.name = name
 
         self.timer = QTimer()
         self.timer.timeout.connect(self.update)
@@ -49,6 +48,7 @@ class Animation:
 
     def stop(self):
         self.pause()
+        self.playing = False
 
     def resume(self):
         self.timer.start()
