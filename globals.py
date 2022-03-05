@@ -9,6 +9,8 @@ LITTER_BOX_SIZE = (70, 40)
 POOP_SIZE = (15, 15)
 SNACK_SIZE = (15, 15)
 
+
+'''
 class Dir(Enum):
     UP    = 0
     DOWN  = 1
@@ -46,3 +48,4 @@ class Mission(Enum):
     WANDER_EDGE = auto()
     WANDER_EDGE_VAUGE = auto()
     WANDER_WINDOW = auto()
+'''
